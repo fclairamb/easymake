@@ -109,11 +109,11 @@ $(TARGET): $(OBJ) $(DIST)
 
 $(BUILD)/%.cpp_o: %.cpp $(BUILD)
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES) $(DEFINES) 
-	$(CXX) -MM -o $@.d $< $(CXXFLAGS) $(INCLUDES) $(DEFINES) 
+	$(CXX) -MM -o $@.d -MT $@ $< $(CXXFLAGS) $(INCLUDES) $(DEFINES) 
 
 $(BUILD)/%.c_o: %.c $(BUILD)
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) $(DEFINES) 
-	$(CC) -MM -o $@.d $< $(CFLAGS) $(INCLUDES) $(DEFINES) 
+	$(CC) -MM -o $@.d -MT $@ $< $(CFLAGS) $(INCLUDES) $(DEFINES) 
 
 -include $(MAKEFILE_INCLUDE)
 
