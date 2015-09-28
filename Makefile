@@ -1,5 +1,4 @@
 # This is makefile skeleton that can be pretty much used as-is.
-# I'm sure we can simplify it a bit.
 
 # You can run your binary by typing
 # make test
@@ -15,36 +14,25 @@ NAME=mybin
 CFLAGS+=-Wall -Werror -fPIC
 
 # Target dir to put the binary in
-TARGET_DIR=/bin
+TARGET_DIR=/usr/bin
 
 # For a shared library you would need to add:
 # LDFLAGS=-shared
-# TARGET_DIR=/lib
+# TARGET_DIR=/usr/lib
 # NAME:=$(NAME).so
+
+# You should probably keep this include as is
+INCLUDES:=-Isrc
 
 # Libraries we will use
 LDLIBSOPTIONS=\
 -ldl \
 -lz \
--ljson-c \
 -lssl \
 -lcrypto \
 -lpthread
 
-# Arch flags:
-# ARCHFLAGS=-m32
-
 CXXFLAGS=$(CFLAGS)
-
-# Prefix (for install)
-ifeq "$(PREFIX)" ""
-	PREFIX:=usr
-endif
-
-# Destdir (for install)
-ifeq "$(DESTDIR)" ""
-	DESTDIR:=/
-endif
 
 # Configuration: Debug / Release
 ifeq "$(CONF)" ""
@@ -73,47 +61,46 @@ BUILD:=build/$(CROSS_COMPILE)$(CONF)
 DIST:=dist/$(CROSS_COMPILE)$(CONF)
 TARGET:=$(DIST)/$(NAME)
 
-# You should probably keep this include as is
-INCLUDES:=-Isrc
-
-# Dirty build things
+# We search for all the C and C++ files
 SRCS_CPP:=$(shell find src -name "*.cpp")
 SRCS_C:=$(shell find src -name "*.c")
+
+# We defile some auto-generated object files
 OBJ:=\
 $(addprefix $(BUILD)/,$(patsubst %.cpp,%.cpp_o,$(wildcard $(SRCS_CPP)))) \
 $(addprefix $(BUILD)/,$(patsubst %.c,%.c_o,$(wildcard $(SRCS_C))))
+
+# We define some auto-generated definition files
 MAKEFILE_INCLUDE:=\
 $(addprefix $(BUILD)/,$(patsubst %.cpp,%.cpp_o.d,$(wildcard $(SRCS_CPP)))) \
 $(addprefix $(BUILD)/,$(patsubst %.c,%.c_o.d,$(wildcard $(SRCS_C))))
 
+# We add the INCLUDES flags
+CFLAGS += $(INCLUDES)
+
+# This might not make that much sence
 ifneq "$(ARCHFLAGS)" ""
-    CFLAGS:=$(CFLAGS) $(ARCHFLAGS)
-    CXXFLAGS:=$(CXXFLAGS) $(ARCHFLAGS)
-    LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS)
+    CFLAGS += $(ARCHFLAGS)
+    LDFLAGS += $(ARCHFLAGS)
 endif
 
-all: build
-	
-modules: $(MODULES)
 
-build: $(TARGET)
-	@[ ! -e dist/last ] || rm dist/last
-	@ln -s $(CROSS)$(CONF) dist/last
+$(NAME): $(TARGET)
+	ln -f $(TARGET) $(NAME)
 
 # Final binary
 $(TARGET): $(OBJ) $(DIST)
 	$(CXX) -o $(TARGET) $(OBJ) $(LDLIBSOPTIONS) $(LDFLAGS)
 
-# For a shared library
-# $(CXX) -shared -o $(TARGET) $(CXXFLAGS) $(OBJ) $(LDLIBSOPTIONS)
-
+# C++ compilation and dependencies generation
 $(BUILD)/%.cpp_o: %.cpp $(BUILD)
-	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES) $(DEFINES) 
-	$(CXX) -MM -o $@.d -MT $@ $< $(CXXFLAGS) $(INCLUDES) $(DEFINES) 
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INCLUDES) $(DEFINES)
+	$(CXX) -MM -o $@.d -MT $@ $< $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 
+# C compilation and dependencies generation
 $(BUILD)/%.c_o: %.c $(BUILD)
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) $(DEFINES) 
-	$(CC) -MM -o $@.d -MT $@ $< $(CFLAGS) $(INCLUDES) $(DEFINES) 
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) $(DEFINES)
+	$(CC) -MM -o $@.d -MT $@ $< $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 -include $(MAKEFILE_INCLUDE)
 
@@ -127,15 +114,15 @@ $(BUILD):
 $(DIST):
 	mkdir -p $(DIST)
 
-# Test this with: make install DESTDIR=./install PREFIX=/
+# Test this with: make install DESTDIR=./install
 install: $(TARGET)
 	# For binaries
-	[ -d $(DESTDIR)$(PREFIX)$(TARGET_DIR) ] || mkdir -p $(DESTDIR)$(PREFIX)$(TARGET_DIR)
-	cp $(TARGET) $(DESTDIR)$(PREFIX)$(TARGET_DIR)/$(NAME)
+	mkdir -p $(DESTDIR)$(TARGET_DIR)
+	cp $(TARGET) $(DESTDIR)$(TARGET_DIR)/$(NAME)
 
 test: $(TARGET)
 	@printf "\n\n==================== Running $(TARGET) ====================\n\n"
 	@$(TARGET)
 
 clean:
-	rm -Rf build dist
+	rm -Rf build dist $(NAME)
