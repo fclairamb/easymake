@@ -117,10 +117,10 @@ $(DIST):
 # Test this with: make install DESTDIR=./install
 install: $(TARGET)
 	# For binaries
-	mkdir -p $(DESTDIR)$(TARGET_DIR)
-	cp $(TARGET) $(DESTDIR)$(TARGET_DIR)/$(NAME)
+	mkdir -p $(DESTDIR)/$(TARGET_DIR)
+	cp $(TARGET) $(DESTDIR)/$(TARGET_DIR)/$(NAME)
 
-test: $(TARGET)
+run: $(TARGET)
 	@printf "\n\n==================== Running $(TARGET) ====================\n\n"
 	@$(TARGET)
 
