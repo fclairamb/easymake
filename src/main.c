@@ -5,7 +5,7 @@
 
 void bye();
 
-int main(int argc, char** argv) {
+int main() {
 	atexit(bye);
 
 	printf("%s\n", msg_hello());

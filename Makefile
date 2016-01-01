@@ -1,8 +1,7 @@
-# This is makefile skeleton that can be pretty much used as-is.
+# This is makefile skeleton can be used as-is for many projects.
 
 # You can run your binary by typing
-# make test
-# make test CONF=Size
+# make run
 
 # Limitations:
 # * You need to do a clean when adding a directory in src
@@ -11,18 +10,18 @@
 NAME=mybin
 
 # Flags we will add to the one we pass
-CFLAGS+=-Wall -Werror -fPIC
+CFLAGS+=-Wall -Werror -Wextra -rdynamic -fPIC
 
 # Target dir to put the binary in
-TARGET_DIR=/usr/bin
+TARGET_DIR=/bin
 
 # For a shared library you would need to add:
 # LDFLAGS=-shared
 # TARGET_DIR=/usr/lib
 # NAME:=$(NAME).so
 
-# You should probably keep this include as is
-INCLUDES:=-Isrc
+# include is only useful if you're making a library and want to share include files
+INCLUDES:=-Isrc -Iinclude
 
 # Libraries we will use
 LDLIBSOPTIONS=\
@@ -41,12 +40,13 @@ endif
 ifeq "$(CONF)" "Debug"
     CFLAGS+=-O0 -g -fPIC
 endif
-ifeq "$(CONF)" "Size"
-	CFLAGS+=-Os
-endif
 ifeq "$(CONF)" "Release"
     CFLAGS+=-O2 -fPIC
     DEFINES+=-DNDEBUG
+endif
+
+ifndef PREFIX
+	PREFIX=/usr
 endif
 
 # Compilation tools
@@ -59,7 +59,7 @@ BUILD:=build/$(CROSS_COMPILE)$(CONF)
 
 # Final distribuable binaries
 DIST:=dist/$(CROSS_COMPILE)$(CONF)
-TARGET:=$(DIST)/$(NAME)
+OUTPUT:=$(DIST)/$(NAME)
 
 # We search for all the C and C++ files
 SRCS_CPP:=$(shell find src -name "*.cpp")
@@ -85,12 +85,12 @@ ifneq "$(ARCHFLAGS)" ""
 endif
 
 
-$(NAME): $(TARGET)
-	ln -f $(TARGET) $(NAME)
+$(NAME): $(OUTPUT)
+	ln -f $(OUTPUT) $(NAME)
 
 # Final binary
-$(TARGET): $(OBJ) $(DIST)
-	$(CXX) -o $(TARGET) $(OBJ) $(LDLIBSOPTIONS) $(LDFLAGS)
+$(OUTPUT): $(OBJ) $(DIST)
+	$(CXX) -o $(OUTPUT) $(OBJ) $(LDLIBSOPTIONS) $(LDFLAGS)
 
 # C++ compilation and dependencies generation
 $(BUILD)/%.cpp_o: %.cpp $(BUILD)
@@ -114,15 +114,25 @@ $(BUILD):
 $(DIST):
 	mkdir -p $(DIST)
 
-# Test this with: make install DESTDIR=./install
-install: $(TARGET)
-	# For binaries
-	mkdir -p $(DESTDIR)/$(TARGET_DIR)
-	cp $(TARGET) $(DESTDIR)/$(TARGET_DIR)/$(NAME)
+all-releases:
+	@make CONF=Release
+	@make CONF=Debug
 
-run: $(TARGET)
+doc:
+	[ ! -f Doxyfile ] || doxygen
+
+all: all-releases doc
+
+
+# Test this with: make install DESTDIR=./install
+install: $(OUTPUT)
+	# For binaries
+	mkdir -p $(DESTDIR)$(PREFIX)$(TARGET_DIR)
+	cp $(OUTPUT) $(DESTDIR)$(PREFIX)$(TARGET_DIR)/$(NAME)
+
+run: $(OUTPUT)
 	@printf "\n\n==================== Running $(TARGET) ====================\n\n"
-	@$(TARGET)
+	@$(OUTPUT)
 
 clean:
 	rm -Rf build dist $(NAME)
